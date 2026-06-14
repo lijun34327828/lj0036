@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Filter, X, Download, RotateCcw } from 'lucide-react';
+import { Filter, X, Download, RotateCcw, Layers } from 'lucide-react';
 import { useFilterStore } from '@/store/filterStore';
 import { api } from '@/lib/api';
 
@@ -10,6 +10,8 @@ export default function FilterPanel() {
     setCategories,
     setMinViews,
     resetFilters,
+    drillDownCategory,
+    clearDrillDown,
   } = useFilterStore();
 
   const [categories, setCategoriesList] = useState<string[]>([]);
@@ -21,6 +23,12 @@ export default function FilterPanel() {
   useEffect(() => {
     api.getCategories().then(setCategoriesList).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (drillDownCategory) {
+      setLocalCategories([drillDownCategory]);
+    }
+  }, [drillDownCategory]);
 
   const toggleCategory = (cat: string) => {
     setLocalCategories((prev) =>
@@ -45,10 +53,8 @@ export default function FilterPanel() {
   const handleExport = () => {
     const exportFilters = {
       ...filters,
-      startDate: localStartDate || undefined,
-      endDate: localEndDate || undefined,
-      categories: localCategories,
-      minViews: localMinViews === '' ? undefined : Number(localMinViews),
+      sortBy: filters.sortBy ?? 'engagement',
+      sortOrder: filters.sortOrder ?? 'desc',
     };
     window.location.href = api.getExportUrl(exportFilters);
   };
@@ -61,6 +67,27 @@ export default function FilterPanel() {
 
   return (
     <div className="bg-white rounded-lg shadow-card border border-slate-100 p-5 mb-6 animate-fade-in">
+      {drillDownCategory && (
+        <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <Layers className="w-4 h-4 text-primary-600" />
+            <span className="text-sm text-slate-600">
+              当前下钻查看分类：
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium">
+              {drillDownCategory}
+            </span>
+          </div>
+          <button
+            onClick={clearDrillDown}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-md transition-colors"
+          >
+            <X className="w-3.5 h-3.5" />
+            取消下钻
+          </button>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Filter className="w-4 h-4 text-primary-600" />

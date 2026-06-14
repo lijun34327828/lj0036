@@ -1,5 +1,5 @@
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { Gauge, TrendingUp } from 'lucide-react';
+import { Gauge, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import type { AggregatedStats } from '@shared/types';
 
 const levelConfig = {
@@ -16,6 +16,7 @@ interface Props {
 export default function OverallScoreCard({ stats }: Props) {
   const level = levelConfig[stats.scoreLevel];
   const scorePercent = Math.min(stats.overallScore, 100);
+  const scoreTrend = stats.trends?.overallScore;
 
   const data = [
     { name: '得分', value: scorePercent },
@@ -30,9 +31,34 @@ export default function OverallScoreCard({ stats }: Props) {
           <Gauge className="w-4 h-4 text-primary-600" />
           <h3 className="font-semibold text-slate-800">整体运营表现</h3>
         </div>
-        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${level.bg} ${level.text}`}>
-          {level.label}
-        </span>
+        <div className="flex items-center gap-2">
+          {scoreTrend !== undefined && scoreTrend !== null && (
+            <span
+              className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
+                scoreTrend === null
+                  ? 'bg-slate-50 text-slate-500'
+                  : scoreTrend >= 0
+                  ? 'bg-emerald-50 text-emerald-600'
+                  : 'bg-rose-50 text-rose-600'
+              }`}
+            >
+              {scoreTrend === null ? (
+                <Minus className="w-3 h-3" />
+              ) : scoreTrend >= 0 ? (
+                <>
+                  <TrendingUp className="w-3 h-3" />
+                  +
+                </>
+              ) : (
+                <TrendingDown className="w-3 h-3" />
+              )}
+              {scoreTrend === null ? '—' : `${Math.abs(scoreTrend)}%`}
+            </span>
+          )}
+          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${level.bg} ${level.text}`}>
+            {level.label}
+          </span>
+        </div>
       </div>
 
       <div className="flex items-center gap-6">

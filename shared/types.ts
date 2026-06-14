@@ -40,6 +40,15 @@ export interface AggregatedStats {
   avgEngagementRate: number;
   overallScore: number;
   scoreLevel: 'excellent' | 'good' | 'fair' | 'poor';
+  trends: {
+    totalViews: number | null;
+    totalUniqueViews: number | null;
+    totalLikes: number | null;
+    totalShares: number | null;
+    totalComments: number | null;
+    totalNewFollowers: number | null;
+    overallScore: number | null;
+  };
 }
 
 export interface TrendPoint {

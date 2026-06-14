@@ -7,6 +7,7 @@ import {
   Tooltip,
 } from 'recharts';
 import { PieChart as PieIcon } from 'lucide-react';
+import { useFilterStore } from '@/store/filterStore';
 import type { CategoryStats } from '@shared/types';
 
 const COLORS = ['#1E3A5F', '#2E66A1', '#4F85BF', '#7DA6D1', '#F59E0B', '#D97706', '#10B981'];
@@ -17,6 +18,7 @@ interface Props {
 
 export default function CategoryPieChart({ data }: Props) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const { drillDownCategory, setDrillDownCategory } = useFilterStore();
 
   const total = data.reduce((sum, d) => sum + d.totalViews, 0);
 
@@ -28,11 +30,26 @@ export default function CategoryPieChart({ data }: Props) {
     percent: total > 0 ? ((d.totalViews / total) * 100).toFixed(1) : '0',
   }));
 
+  const handleClick = (category: string) => {
+    if (drillDownCategory === category) {
+      setDrillDownCategory(null);
+    } else {
+      setDrillDownCategory(category);
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-card border border-slate-100 p-5 animate-slide-up">
-      <div className="flex items-center gap-2 mb-4">
-        <PieIcon className="w-4 h-4 text-primary-600" />
-        <h3 className="font-semibold text-slate-800">分类流量占比</h3>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <PieIcon className="w-4 h-4 text-primary-600" />
+          <h3 className="font-semibold text-slate-800">分类流量占比</h3>
+        </div>
+        {drillDownCategory && (
+          <span className="text-xs text-slate-500">
+            点击扇区切换分类
+          </span>
+        )}
       </div>
 
       <div className="flex items-center gap-4">
@@ -49,14 +66,24 @@ export default function CategoryPieChart({ data }: Props) {
                 dataKey="value"
                 onMouseEnter={(_, index) => setActiveIndex(index)}
                 onMouseLeave={() => setActiveIndex(null)}
+                onClick={(_, index) => handleClick(chartData[index].name)}
+                style={{ cursor: 'pointer' }}
               >
-                {chartData.map((_entry, index) => (
+                {chartData.map((entry, index) => (
                   <Cell
                     key={`cell-${index}`}
                     fill={COLORS[index % COLORS.length]}
-                    opacity={activeIndex === null || activeIndex === index ? 1 : 0.4}
-                    stroke="white"
-                    strokeWidth={2}
+                    opacity={
+                      drillDownCategory
+                        ? drillDownCategory === entry.name
+                          ? 1
+                          : 0.3
+                        : activeIndex === null || activeIndex === index
+                        ? 1
+                        : 0.4
+                    }
+                    stroke={drillDownCategory === entry.name ? '#1E40AF' : 'white'}
+                    strokeWidth={drillDownCategory === entry.name ? 3 : 2}
                   />
                 ))}
               </Pie>
@@ -78,10 +105,15 @@ export default function CategoryPieChart({ data }: Props) {
             <div
               key={entry.name}
               className={`flex items-center justify-between gap-3 py-1.5 px-2 rounded transition-all cursor-pointer ${
-                activeIndex === index ? 'bg-slate-50' : ''
+                drillDownCategory === entry.name
+                  ? 'bg-primary-50 ring-1 ring-primary-200'
+                  : activeIndex === index
+                  ? 'bg-slate-50'
+                  : 'hover:bg-slate-50'
               }`}
               onMouseEnter={() => setActiveIndex(index)}
               onMouseLeave={() => setActiveIndex(null)}
+              onClick={() => handleClick(entry.name)}
             >
               <div className="flex items-center gap-2 min-w-0">
                 <span

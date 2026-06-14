@@ -17,12 +17,19 @@ function formatNumber(n: number): string {
 }
 
 export default function Dashboard() {
-  const { filters, timePeriod } = useFilterStore();
+  const { filters, timePeriod, setSortBy } = useFilterStore();
   const [stats, setStats] = useState<AggregatedStats | null>(null);
   const [trends, setTrends] = useState<TrendPoint[]>([]);
   const [categoryStats, setCategoryStats] = useState<CategoryStats[]>([]);
   const [topArticles, setTopArticles] = useState<ArticleWithMetrics[]>([]);
   const [loading, setLoading] = useState(true);
+  const sortBy = filters.sortBy ?? 'engagement';
+
+  useEffect(() => {
+    if (!filters.sortBy) {
+      setSortBy('engagement');
+    }
+  }, []);
 
   useEffect(() => {
     const loadData = async () => {
@@ -32,7 +39,7 @@ export default function Dashboard() {
           api.getOverview(filters),
           api.getTrends(timePeriod, filters),
           api.getCategoryStats(filters),
-          api.getRanking('engagement', 8, filters),
+          api.getRanking(sortBy, 8, filters),
         ]);
         setStats(s);
         setTrends(t);
@@ -45,7 +52,7 @@ export default function Dashboard() {
       }
     };
     loadData();
-  }, [filters, timePeriod]);
+  }, [filters, timePeriod, sortBy]);
 
   return (
     <div>
@@ -69,7 +76,7 @@ export default function Dashboard() {
             value={formatNumber(stats.totalViews)}
             icon={Eye}
             gradient="bg-gradient-to-br from-primary-500 to-primary-700"
-            trend={12.5}
+            trend={stats.trends.totalViews}
             description="对比上期"
           />
           <MetricCard
@@ -77,35 +84,39 @@ export default function Dashboard() {
             value={formatNumber(stats.totalUniqueViews)}
             icon={Users}
             gradient="bg-gradient-to-br from-blue-500 to-blue-700"
-            trend={8.3}
+            trend={stats.trends.totalUniqueViews}
+            description="对比上期"
           />
           <MetricCard
             title="总点赞数"
             value={formatNumber(stats.totalLikes)}
             icon={Heart}
             gradient="bg-gradient-to-br from-rose-500 to-rose-600"
-            trend={15.2}
+            trend={stats.trends.totalLikes}
+            description="对比上期"
           />
           <MetricCard
             title="总转发数"
             value={formatNumber(stats.totalShares)}
             icon={Share2}
             gradient="bg-gradient-to-br from-emerald-500 to-emerald-700"
-            trend={-2.1}
+            trend={stats.trends.totalShares}
+            description="对比上期"
           />
           <MetricCard
             title="总评论数"
             value={formatNumber(stats.totalComments)}
             icon={MessageSquare}
             gradient="bg-gradient-to-br from-violet-500 to-violet-700"
-            trend={6.8}
+            trend={stats.trends.totalComments}
+            description="对比上期"
           />
           <MetricCard
             title="粉丝引流"
             value={formatNumber(stats.totalNewFollowers)}
             icon={UserPlus}
             gradient="bg-gradient-to-br from-accent-500 to-accent-700"
-            trend={21.4}
+            trend={stats.trends.totalNewFollowers}
             description="新增粉丝"
           />
         </div>

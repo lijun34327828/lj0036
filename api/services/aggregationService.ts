@@ -19,12 +19,38 @@ import type {
   FilterParams,
   ArticleWithMetrics,
   TimePeriod,
+  Article,
+  ArticleMetrics,
 } from '../../shared/types.js';
 
-export function getOverviewStats(filter: FilterParams = {}): AggregatedStats {
-  const articles = getAllArticles(filter);
+function getPreviousPeriodFilter(filter: FilterParams): FilterParams | null {
+  const { startDate, endDate } = filter;
+  if (!startDate || !endDate) return null;
 
-  const stats: AggregatedStats = {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+  const prevEnd = new Date(start);
+  prevEnd.setDate(prevEnd.getDate() - 1);
+  const prevStart = new Date(prevEnd);
+  prevStart.setDate(prevStart.getDate() - days + 1);
+
+  return {
+    ...filter,
+    startDate: prevStart.toISOString().split('T')[0],
+    endDate: prevEnd.toISOString().split('T')[0],
+  };
+}
+
+function calcTrend(current: number, previous: number): number | null {
+  if (previous === 0) return current > 0 ? 100 : null;
+  const trend = ((current - previous) / previous) * 100;
+  return Math.round(trend * 10) / 10;
+}
+
+function calculateStatsFromArticles(articles: (Article & { metrics: ArticleMetrics })[]): Omit<AggregatedStats, 'trends'> {
+  const stats: Omit<AggregatedStats, 'trends'> = {
     totalArticles: articles.length,
     totalViews: 0,
     totalUniqueViews: 0,
@@ -70,6 +96,38 @@ export function getOverviewStats(filter: FilterParams = {}): AggregatedStats {
   stats.scoreLevel = getScoreLevel(stats.overallScore);
 
   return stats;
+}
+
+export function getOverviewStats(filter: FilterParams = {}): AggregatedStats {
+  const articles = getAllArticles(filter);
+  const current = calculateStatsFromArticles(articles);
+
+  const trends: AggregatedStats['trends'] = {
+    totalViews: null,
+    totalUniqueViews: null,
+    totalLikes: null,
+    totalShares: null,
+    totalComments: null,
+    totalNewFollowers: null,
+    overallScore: null,
+  };
+
+  const prevFilter = getPreviousPeriodFilter(filter);
+  if (prevFilter) {
+    const prevArticles = getAllArticles(prevFilter);
+    if (prevArticles.length > 0) {
+      const prev = calculateStatsFromArticles(prevArticles);
+      trends.totalViews = calcTrend(current.totalViews, prev.totalViews);
+      trends.totalUniqueViews = calcTrend(current.totalUniqueViews, prev.totalUniqueViews);
+      trends.totalLikes = calcTrend(current.totalLikes, prev.totalLikes);
+      trends.totalShares = calcTrend(current.totalShares, prev.totalShares);
+      trends.totalComments = calcTrend(current.totalComments, prev.totalComments);
+      trends.totalNewFollowers = calcTrend(current.totalNewFollowers, prev.totalNewFollowers);
+      trends.overallScore = calcTrend(current.overallScore, prev.overallScore);
+    }
+  }
+
+  return { ...current, trends };
 }
 
 export function getTrends(period: TimePeriod = 'day', filter: FilterParams = {}): TrendPoint[] {

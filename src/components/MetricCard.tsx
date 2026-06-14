@@ -1,11 +1,11 @@
-import { type LucideIcon, TrendingUp, TrendingDown } from 'lucide-react';
+import { type LucideIcon, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 interface MetricCardProps {
   title: string;
   value: string | number;
   suffix?: string;
   icon: LucideIcon;
-  trend?: number;
+  trend?: number | null;
   gradient: string;
   description?: string;
 }
@@ -19,6 +19,8 @@ export default function MetricCard({
   gradient,
   description,
 }: MetricCardProps) {
+  const showTrend = trend !== undefined && trend !== null;
+
   return (
     <div className="bg-white rounded-lg shadow-card border border-slate-100 p-5 hover:shadow-card-hover transition-all duration-300 group animate-slide-up">
       <div className="flex items-start justify-between mb-4">
@@ -42,17 +44,24 @@ export default function MetricCard({
         {trend !== undefined && (
           <span
             className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
-              trend >= 0
+              trend === null
+                ? 'bg-slate-50 text-slate-500'
+                : trend >= 0
                 ? 'bg-emerald-50 text-emerald-600'
                 : 'bg-rose-50 text-rose-600'
             }`}
           >
-            {trend >= 0 ? (
-              <TrendingUp className="w-3 h-3" />
+            {trend === null ? (
+              <Minus className="w-3 h-3" />
+            ) : trend >= 0 ? (
+              <>
+                <TrendingUp className="w-3 h-3" />
+                +
+              </>
             ) : (
               <TrendingDown className="w-3 h-3" />
             )}
-            {Math.abs(trend)}%
+            {trend === null ? '—' : `${Math.abs(trend)}%`}
           </span>
         )}
         {description && (
