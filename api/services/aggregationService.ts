@@ -73,11 +73,18 @@ export function getOverviewStats(filter: FilterParams = {}): AggregatedStats {
 }
 
 export function getTrends(period: TimePeriod = 'day', filter: FilterParams = {}): TrendPoint[] {
-  let days = 30;
-  if (period === 'week') days = 90;
-  if (period === 'month') days = 365;
+  const trendFilter: FilterParams = { ...filter };
 
-  const dailyData = getDailyTrends(days);
+  if (!trendFilter.startDate && !trendFilter.endDate) {
+    let days = 30;
+    if (period === 'week') days = 90;
+    if (period === 'month') days = 365;
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    trendFilter.startDate = startDate.toISOString().split('T')[0];
+  }
+
+  const dailyData = getDailyTrends(trendFilter);
 
   if (period === 'day') {
     return dailyData.map(d => ({

@@ -92,11 +92,11 @@ export function getAllArticles(filter: FilterParams = {}): (Article & { metrics:
   const params: (string | number)[] = [];
 
   if (filter.startDate) {
-    clauses.push('a.publish_date >= ?');
+    clauses.push('DATE(a.publish_date) >= ?');
     params.push(filter.startDate);
   }
   if (filter.endDate) {
-    clauses.push('a.publish_date <= ?');
+    clauses.push('DATE(a.publish_date) <= ?');
     params.push(filter.endDate);
   }
   if (filter.categories && filter.categories.length > 0) {
@@ -158,7 +158,33 @@ export function getAllCategories(): string[] {
   return rows.map(r => r.category);
 }
 
-export function getDailyTrends(days: number = 30): DailyTrendRow[] {
+export function getDailyTrends(filter: FilterParams = {}): DailyTrendRow[] {
+  const clauses: string[] = [];
+  const params: (string | number)[] = [];
+
+  if (filter.startDate) {
+    clauses.push('DATE(a.publish_date) >= ?');
+    params.push(filter.startDate);
+  }
+  if (filter.endDate) {
+    clauses.push('DATE(a.publish_date) <= ?');
+    params.push(filter.endDate);
+  }
+  if (filter.categories && filter.categories.length > 0) {
+    clauses.push(`a.category IN (${filter.categories.map(() => '?').join(',')})`);
+    params.push(...filter.categories);
+  }
+  if (filter.minViews) {
+    clauses.push('m.views >= ?');
+    params.push(filter.minViews);
+  }
+
+  if (!filter.startDate && !filter.endDate) {
+    clauses.push('DATE(a.publish_date) >= DATE(\'now\', \'-30 days\')');
+  }
+
+  const where = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
+
   const rows = db.prepare(`
     SELECT
       DATE(a.publish_date) as date,
@@ -170,10 +196,10 @@ export function getDailyTrends(days: number = 30): DailyTrendRow[] {
       SUM(m.favorites) as favorites
     FROM articles a
     LEFT JOIN article_metrics m ON a.id = m.article_id
-    WHERE a.publish_date >= DATE('now', ?)
+    ${where}
     GROUP BY DATE(a.publish_date)
     ORDER BY date ASC
-  `).all(`-${days} days`) as DailyTrendRow[];
+  `).all(...params) as DailyTrendRow[];
   return rows;
 }
 
@@ -182,12 +208,20 @@ export function getCategoryStats(filter: FilterParams = {}): CategoryStatsRow[] 
   const params: (string | number)[] = [];
 
   if (filter.startDate) {
-    clauses.push('a.publish_date >= ?');
+    clauses.push('DATE(a.publish_date) >= ?');
     params.push(filter.startDate);
   }
   if (filter.endDate) {
-    clauses.push('a.publish_date <= ?');
+    clauses.push('DATE(a.publish_date) <= ?');
     params.push(filter.endDate);
+  }
+  if (filter.categories && filter.categories.length > 0) {
+    clauses.push(`a.category IN (${filter.categories.map(() => '?').join(',')})`);
+    params.push(...filter.categories);
+  }
+  if (filter.minViews) {
+    clauses.push('m.views >= ?');
+    params.push(filter.minViews);
   }
 
   const where = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
